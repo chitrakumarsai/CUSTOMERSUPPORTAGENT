@@ -1,0 +1,31 @@
+# Node modules
+frontend/node_modules/
+
+# Python virtual environments
+venv/
+*.venv
+cusagent/
+*.cusagent
+
+# Python bytecode
+**/__pycache__
+*.pyc
+*.pyo
+
+# Environment files
+.env
+
+# Docker files
+.dockerignore
+*.log
+
+# IDE/project files
+*.vscode/
+*.idea/
+.DS_Store
+
+# Ignore build artifacts
+frontend/build/
+backend/__pycache__/
+data/*.pdf
+*.ipynb
