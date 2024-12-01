@@ -29,3 +29,5 @@ frontend/build/
 backend/__pycache__/
 data/*.pdf
 *.ipynb
+*.jpeg
+.jpeg
