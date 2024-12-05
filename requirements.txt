@@ -2,3 +2,5 @@ streamlit
 langchain
 langgraph
 llama-index
+chromadb
+python-dotenv

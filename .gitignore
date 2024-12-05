@@ -31,3 +31,7 @@ data/*.pdf
 *.ipynb
 *.jpeg
 .jpeg
+*.json
+.json
+*.chroma_db
+.chroma_db
