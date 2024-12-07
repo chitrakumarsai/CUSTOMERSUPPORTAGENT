@@ -4,3 +4,5 @@ langgraph
 llama-index
 chromadb
 python-dotenv
+langchain-openai
+langchain-core
