@@ -2,6 +2,7 @@ import streamlit as st
 from vector_store import ShopVectorStore
 from chatbot import app
 from langchain_core.messages import AIMessage, HumanMessage
+from tools import customers_database, data_protection_checks
 
 st.set_page_config(layout='wide', page_title='INVISTA SHOP', page_icon='./image.jpeg')
 
@@ -38,4 +39,6 @@ with middle_col:
         message_box.markdown(this_message.content)
 
 with right_col:
-    st.text(st.session_state.message_history)
+    st.title("Customer Database")
+    st.write(customers_database)
+    st.write(data_protection_checks)

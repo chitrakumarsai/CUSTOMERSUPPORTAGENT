@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
 from langchain_core.messages import AIMessage, HumanMessage
-from tools import query_knowledge_base, search_for_product_recommendations
+from tools import query_knowledge_base, search_for_product_recommendations, data_protection_check, create_new_customer
 load_dotenv()
 
 
@@ -19,6 +19,7 @@ You are customer service chatbot for INVISTA SHOP company. You can help the cust
 # Goals
 1. Answer the questions the user might have relating to the products and services offered by INVISTA SHOP.
 2. Recommend products to the user based on their preferences.
+3. Retrieve or create customer profiles. If the customer already has a profile, perform a data protection check to retrieve their details. If not create them a new profile.
 
 # Tone
 The tone should be friendly and helpful. Use gen-z emojjis and simlies to keep things light hearted.
@@ -37,7 +38,7 @@ llm = ChatOpenAI(
     api_key = os.environ["OPENAI_API_KEY"] , 
 )
 
-tools = [query_knowledge_base, search_for_product_recommendations]
+tools = [query_knowledge_base, search_for_product_recommendations, data_protection_check, create_new_customer]
 llm_with_prompt = chat_template | llm.bind_tools(tools)
 
 def call_agent(message_state: MessagesState):
