@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 from typing import List, Dict
 from vector_store import ShopVectorStore
+import json
 
 vector_store = ShopVectorStore()
 
@@ -8,6 +9,15 @@ customers_database = [
     {"name": "John Doe", "postcode": "SW1A 1AA", "dob": "1990-01-01", "customer_id": "CUST001", "first_line_address": "123 Main St", "phone_number": "07712345678", "email": "john.doe@example.com"},
     {"name": "Jane Smith", "postcode": "E1 6AN", "dob": "1985-05-15", "customer_id": "CUST002", "first_line_address": "456 High St", "phone_number": "07723456789", "email": "jane.smith@example.com"},
 ]
+
+order_database = [
+    { "order_id" : "ORD001", "customer_id" : "CUST001", "status" : "processing", "items" : ["Industrial Nylon Fiber"], "quantity": [2]},
+    { "order_id" : "ORD002", "customer_id" : "CUST002", "status" : "shipped", "items" : ["Nylon Composite Sheets", "Nylon Braided Cord"], "quantity": [1, 3]}
+    
+]
+
+with open('inventory.json', 'r') as f:
+    inventory_database = json.load(f)
 
 data_protection_checks = []
 
@@ -108,7 +118,74 @@ def search_for_product_recommendations(description: str):
     Return:
         List[Dict[str, str]]: Potentially relavent product features.
     """
-    return store.query_inventories(query=description)
+    return vector_store.query_inventories(query=description)
 
 
+@tool
+def retrieve_existing_customer_orders(customer_id: str):
+    """
+    Retrieves the orders associated with a customer, including the status, items and ids.
 
+    Args:
+        customer_id (str): Customer unique id associated with the orders
+
+    Returns:
+        List[Dict]: All the orders associated with the customer_id passed in
+    """
+    customer_orders = [order for order in order_database if order['customer_id'] == customer_id]
+    if not customer_orders:
+        return f"No orders found for this customer: {customer_id}"
+    return customer_orders
+
+
+@tool
+
+def place_order(items: Dict[str, int], customer_id: str):
+    """
+    Places an order for a customer with the items and quantities they want.
+
+    Args:
+        items (Dict[str, int]): The items the customer wants to order and the quantity
+        customer_id (str): The customer unique id associated with the order
+
+    Returns:
+        str: Confirmation that the order has been placed or any issues with the inputs or it has not been placed due to an issue
+
+    Example arguments:
+    items = { 'N007' : 2, 'N008' : 1 }
+    customer_id = 'CUST001'
+    """
+
+    # Check that the item ids are valid
+    # Check that the quantities of items are valid
+    availability_messages = []
+    valid_item_ids = [
+        item['id'] for item in inventory_database
+    ]
+    for item_id, quatity in items.items():
+        if item_id not in valid_item_ids:
+            availability_messages.append(f"Item {item_id} not found in the inventory")
+        else:
+            inventory_item = [item for item in inventory_database if item['id'] == item_id][0]
+            if quatity > inventory_item['quantity']:
+                availability_messages.append(f"There is inssufficient quantity in the inventory for this item {inventory_item['name']} \n Available quantity: {inventory_item['quantity']}\n Requested quantity: {quatity}") 
+
+    if availability_messages:
+        return "Order cannot be placed due to the following issues: \n" + "\n".join(availability_messages)
+    
+    # Place the order (in pretend database)
+
+    order_database.append({
+        'order_id': f'ORD{len(order_database) + 1}',
+        'customer_id': customer_id,
+        'status': 'Waiting for processing',
+        'items': list(items.keys()),
+        'quantity': list(items.values())
+        })
+
+    # Update the inventory
+    for item_id, quatity in items.items():
+        inventory_item = [item for item in inventory_database if item['id'] == item_id][0]
+        inventory_item['quantity'] -= quatity
+    
+    return f"Order with id {order_database[-1]['order_id']} has been placed successfully"
