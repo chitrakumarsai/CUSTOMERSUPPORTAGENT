@@ -29,9 +29,10 @@ def data_protection_check(name: str, postcode: str, year_of_birth: int, month_of
     Args:
         name (str): Customer first and last name
         postcode (str): Customer registered address
-        year_of_birth (int): The year the customer was born
-        month_of_birth (int): The month the customer was born
         day_of_birth (int): The day the customer was born
+        month_of_birth (int): The month the customer was born
+        year_of_birth (int): The year the customer was born
+        
 
     Returns:
         Dict: Customer details (name, postcode, dob, customer_id, first_line_address, email)
@@ -63,9 +64,9 @@ def create_new_customer(first_name: str, surname: str, year_of_birth: int, month
     Args:
         first_name (str): Customers first name
         surname (str): Customers surname
-        year_of_birth (int): Year customer was born
-        month_of_birth (int): Month customer was born
         day_of_birth (int): Day customer was born
+        month_of_birth (int): Month customer was born
+        year_of_birth (int): Year customer was born
         postcode (str): Customer's postcode
         first_line_address (str): Customer's first line of address
         phone_number (str): Customer's phone number
