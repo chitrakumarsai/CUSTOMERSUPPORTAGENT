@@ -1,5 +1,8 @@
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Dict, Iterator, List, Optional, Set
+
 from langchain_core.tools import tool
-from typing import List, Dict
 from vector_store import ShopVectorStore
 import json
 
@@ -20,6 +23,38 @@ with open('inventory.json', 'r') as f:
     inventory_database = json.load(f)
 
 data_protection_checks = []
+
+# Customers who passed a data protection check (or created their profile) in the current
+# conversation. Enforced in code because the system prompt alone can't stop the model from
+# acting on any customer_id. Each conversation binds its own set; with none bound, every
+# order lookup and placement is refused.
+_verified_customers: ContextVar[Optional[Set[str]]] = ContextVar("verified_customers", default=None)
+
+DPA_REQUIRED = (
+    "Access denied: customer {customer_id} has not passed a data protection check in this "
+    "conversation. Run data_protection_check (or create_new_customer) for them first."
+)
+
+
+@contextmanager
+def customer_session(verified_customer_ids: Set[str]) -> Iterator[None]:
+    """Bind one conversation's verified customers while the agent runs."""
+    token = _verified_customers.set(verified_customer_ids)
+    try:
+        yield
+    finally:
+        _verified_customers.reset(token)
+
+
+def _mark_verified(customer_id: str) -> None:
+    verified = _verified_customers.get()
+    if verified is not None:
+        verified.add(customer_id)
+
+
+def _is_verified(customer_id: str) -> bool:
+    verified = _verified_customers.get()
+    return verified is not None and customer_id in verified
 
 @tool
 def data_protection_check(name: str, postcode: str, year_of_birth: int, month_of_birth: int, day_of_birth: int) -> str:
@@ -52,6 +87,7 @@ def data_protection_check(name: str, postcode: str, year_of_birth: int, month_of
             int(customer['dob'][0:4]) == year_of_birth and
             int(customer["dob"][5:7]) == month_of_birth and
             int(customer["dob"][8:10]) == day_of_birth):
+            _mark_verified(customer['customer_id'])
             return f"DPA check passed - Retrieved customer details:\n{customer}"
 
     return "DPA check failed, no customer with these details found"
@@ -87,6 +123,7 @@ def create_new_customer(first_name: str, surname: str, year_of_birth: int, month
         'email': email,
         'customer_id': f'CUST{customer_id}'
     })
+    _mark_verified(f'CUST{customer_id}')
     return f"Customer registered, with customer_id {f'CUST{customer_id}'}"
     
 
@@ -133,6 +170,8 @@ def retrieve_existing_customer_orders(customer_id: str):
     Returns:
         List[Dict]: All the orders associated with the customer_id passed in
     """
+    if not _is_verified(customer_id):
+        return DPA_REQUIRED.format(customer_id=customer_id)
     customer_orders = [order for order in order_database if order['customer_id'] == customer_id]
     if not customer_orders:
         return f"No orders found for this customer: {customer_id}"
@@ -156,6 +195,8 @@ def place_order(items: Dict[str, int], customer_id: str):
     items = { 'N007' : 2, 'N008' : 1 }
     customer_id = 'CUST001'
     """
+    if not _is_verified(customer_id):
+        return DPA_REQUIRED.format(customer_id=customer_id)
 
     # Check that the item ids are valid
     # Check that the quantities of items are valid
