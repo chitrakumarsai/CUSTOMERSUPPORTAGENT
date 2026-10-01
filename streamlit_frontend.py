@@ -2,10 +2,14 @@ import streamlit as st
 from vector_store import ShopVectorStore
 from chatbot import app
 from langchain_core.messages import AIMessage, HumanMessage
-from tools import customers_database, data_protection_checks
+from tools import customer_session, customers_database, data_protection_checks
 
 st.set_page_config(layout='wide', page_title='INVISTA SHOP', page_icon='./image.jpeg')
 
+
+if 'verified_customer_ids' not in st.session_state:
+    # Customers who passed a data protection check in this browser session only.
+    st.session_state.verified_customer_ids = set()
 
 if 'message_history' not in st.session_state:
     st.session_state.message_history = [AIMessage(content='Hey! I am INVISTA SHOP bot. How can I help you today?')]
@@ -23,9 +27,10 @@ with middle_col:
 
         st.session_state.message_history.append(HumanMessage(content=user_input))
 
-        response = app.invoke({
-            'messages': st.session_state.message_history
-        })
+        with customer_session(st.session_state.verified_customer_ids):
+            response = app.invoke({
+                'messages': st.session_state.message_history
+            })
                                                 
 
         st.session_state.message_history = response['messages']
